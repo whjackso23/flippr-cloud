@@ -8,8 +8,12 @@ import os
 ec2_client = boto3.client('ec2')
 ec2_resource = boto3.resource('ec2')
 
+# global paramiko initialization
+ssh=paramiko.SSHClient()
+ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
 # instance id
-instance_ids = ['i-0342b56c2b3d3d6d1']
+instance_ids = ['i-01be23ac6a1572544']
 
 # Check ETL main instance status
 status_response = ec2_resource.meta.client.describe_instance_status(InstanceIds=instance_ids)['InstanceStatuses']
@@ -33,7 +37,15 @@ def start_instance(instance_ids):
             hostname_response=ec2_resource.meta.client.describe_instances(InstanceIds=instance_ids)['Reservations'][0]['Instances']
             hostname=hostname_response[0]['PublicDnsName']
             print(f'Hostname is {hostname}')
-            return hostname
+
+            try:
+                ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
+                print(f'Validated a connection to the host, moving on to code execution')
+                ssh.close()
+                return hostname
+            except paramiko.ssh_exception.NoValidConnectionsError:
+                print(f'Unable to establish connection to host...waiting another 30 secs')
+                continue
         else:
             continue
 
@@ -47,12 +59,11 @@ def run_job(hostname):
     :param hostname: the hostname of the started instance (although the instance id is constant, a new hostname is assigned on every re-start)
     """
     print(f'In run job')
-    ssh=paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
         
     stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --rm flippr', get_pty=True)
-    print(stdout.readlines())
+    with open('flippr-log.txt', 'w') as f:
+            f.write(stdout.readlines())
     ssh.close()
 
 def stop_instance(instance_ids):
