@@ -1,1 +1,8 @@
 Sending build context to Docker daemon  122.4kB
+Hostname is ec2-44-202-206-8.compute-1.amazonaws.com
+Validated a connection to the host, moving on to code execution
+The main ETL instance was stopped at 2022-03-01 23:42:03.297169
+In run job
+Connecting to ec2-44-202-206-8.compute-1.amazonaws.com
+in stop instance
+[]

@@ -52,7 +52,6 @@ def run_job(hostname):
     :param hostname: the hostname of the started instance (although the instance id is constant, a new hostname is assigned on every re-start)
     """
     print(f'In run job')
-    print(f'Connecting to {hostname}')
     ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
         
     stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --log-driver=awslogs --log-opt awslogs-region=us-east-1 --log-opt awslogs-group=flippr --rm flippr:latest', get_pty=True)
