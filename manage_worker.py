@@ -15,13 +15,6 @@ ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 # instance id
 instance_ids = ['i-01be23ac6a1572544']
 
-# Check ETL main instance status
-status_response = ec2_resource.meta.client.describe_instance_status(InstanceIds=instance_ids)['InstanceStatuses']
-if not status_response:
-    print('The main ETL instance was stopped at ' + str(datetime.now()))
-else:
-    print('The main ETL instance was running at the start of the job')
-
 def start_instance(instance_ids):
     
     """
@@ -59,11 +52,11 @@ def run_job(hostname):
     :param hostname: the hostname of the started instance (although the instance id is constant, a new hostname is assigned on every re-start)
     """
     print(f'In run job')
+    print(f'Connecting to {hostname}')
     ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
         
     stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --log-driver=awslogs --log-opt awslogs-region=us-east-1 --log-opt awslogs-group=flippr --rm flippr:latest', get_pty=True)
-    with open('/home/ubuntu/worker-scheduler/flippr-log.txt', 'w') as f:
-            f.write(stdout.readlines()[0])
+    # print(stdout.readlines())
     ssh.close()
 
 def stop_instance(instance_ids):
@@ -79,6 +72,31 @@ def stop_instance(instance_ids):
     status_response = ec2_resource.meta.client.describe_instance_status(InstanceIds=instance_ids)['InstanceStatuses']
     print(status_response)
 
-hostname=start_instance(instance_ids)
-run_job(hostname)
-stop_instance(instance_ids)
+
+def get_hostname(instance_ids):
+
+    """
+    function to get the hostname of an instance
+
+    :param instance_ids: the ids of the instances to get the hostnames of
+
+    """
+
+    hostname_response=ec2_resource.meta.client.describe_instances(InstanceIds=instance_ids)['Reservations'][0]['Instances']
+    hostname=hostname_response[0]['PublicDnsName']
+    print(f'Hostname is {hostname}')
+    return hostname
+
+if __name__ == '__main__':
+    # Check ETL main instance status
+    status_response = ec2_resource.meta.client.describe_instance_status(InstanceIds=instance_ids)['InstanceStatuses']
+    hostname=''
+    if not status_response:
+        hostname=start_instance(instance_ids)
+        print('The main ETL instance was stopped at ' + str(datetime.now()))
+    else:
+        hostname=get_hostname(instance_ids)
+        print('The main ETL instance was running at the start of the job')
+
+    run_job(hostname)
+    # stop_instance(instance_ids)

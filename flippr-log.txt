@@ -1,1 +1,1 @@
-Sending build context to Docker daemon  108.5kB
+Sending build context to Docker daemon  122.4kB
