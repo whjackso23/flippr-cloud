@@ -62,7 +62,7 @@ def run_job(hostname):
     ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
         
     stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --rm flippr', get_pty=True)
-    with open('flippr-log.txt', 'w') as f:
+    with open('/home/ubuntu/worker-scheduler/flippr-log.txt', 'w') as f:
             f.write(stdout.readlines())
     ssh.close()
 
