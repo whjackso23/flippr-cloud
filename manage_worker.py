@@ -61,9 +61,9 @@ def run_job(hostname):
     print(f'In run job')
     ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
         
-    stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --rm flippr', get_pty=True)
+    stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --log-driver=awslogs --log-opt awslogs-region=us-east-1 --log-opt awslogs-group=flippr --rm flippr:latest', get_pty=True)
     with open('/home/ubuntu/worker-scheduler/flippr-log.txt', 'w') as f:
-            f.write(stdout.readlines())
+            f.write(stdout.readlines()[0])
     ssh.close()
 
 def stop_instance(instance_ids):
