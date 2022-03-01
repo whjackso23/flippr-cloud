@@ -99,4 +99,4 @@ if __name__ == '__main__':
         print('The main ETL instance was running at the start of the job')
 
     run_job(hostname)
-    # stop_instance(instance_ids)
+    stop_instance(instance_ids)
