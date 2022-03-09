@@ -3,6 +3,12 @@ import paramiko
 from datetime import datetime
 import time
 import os
+import logging
+
+logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%F %T"
+)
+logger = logging.getLogger(__name__)
 
 # EC2 access credentials
 ec2_client = boto3.client('ec2')
@@ -54,8 +60,8 @@ def run_job(hostname):
     print(f'In run job')
     ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
         
-    stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --log-driver=awslogs --log-opt awslogs-region=us-east-1 --log-opt awslogs-group=flippr --rm flippr:latest', get_pty=True)
-    # print(stdout.readlines())
+    stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --log-driver=awslogs --log-opt awslogs-region=us-east-1 --log-opt awslogs-group=flippr --rm flippr:latest --env "prd"', get_pty=True)
+    print(stdout.readlines())
     ssh.close()
 
 def stop_instance(instance_ids):
@@ -69,8 +75,7 @@ def stop_instance(instance_ids):
     ec2_client.stop_instances(InstanceIds=instance_ids, DryRun=False)
 
     status_response = ec2_resource.meta.client.describe_instance_status(InstanceIds=instance_ids)['InstanceStatuses']
-    print(status_response)
-
+    print('')
 
 def get_hostname(instance_ids):
 
@@ -87,6 +92,9 @@ def get_hostname(instance_ids):
     return hostname
 
 if __name__ == '__main__':
+
+    logger.info(f"Started job at {datetime.now()}")
+
     # Check ETL main instance status
     status_response = ec2_resource.meta.client.describe_instance_status(InstanceIds=instance_ids)['InstanceStatuses']
     hostname=''
@@ -99,3 +107,5 @@ if __name__ == '__main__':
 
     run_job(hostname)
     stop_instance(instance_ids)
+
+    logger.info(f"Ended job at {datetime.now()}")
