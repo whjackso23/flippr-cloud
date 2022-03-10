@@ -4,11 +4,14 @@ from datetime import datetime
 import time
 import os
 import logging
+import argparse
 
 logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%F %T"
 )
 logger = logging.getLogger(__name__)
+
+config = {}
 
 # EC2 access credentials
 ec2_client = boto3.client('ec2')
@@ -60,7 +63,7 @@ def run_job(hostname):
     print(f'In run job')
     ssh.connect(hostname, username='ubuntu', key_filename='/home/ubuntu/.ssh/main-key.pem')
         
-    stdin, stdout, stderr=ssh.exec_command('cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --log-driver=awslogs --log-opt awslogs-region=us-east-1 --log-opt awslogs-group=flippr --rm flippr:latest --env "prd"', get_pty=True)
+    stdin, stdout, stderr=ssh.exec_command(f'cd /home/ubuntu/flippr; docker build -t flippr .; docker run -it --env-file .env --log-driver=awslogs --log-opt awslogs-region=us-east-1 --log-opt awslogs-group=flippr --rm flippr:latest --env "{args.env}" --sample {args.sample}', get_pty=True)
     print(stdout.readlines())
     ssh.close()
 
@@ -93,7 +96,15 @@ def get_hostname(instance_ids):
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description="Collect daily ticket pricing data")
+    parser.add_argument("--env", type=str, required=True)
+    parser.add_argument("--sample", type=int, default=100)
+
     logger.info(f"Started job at {datetime.now()}")
+
+    args = parser.parse_args()
+    args_dict = vars(args)
+    config.update(args_dict)
 
     # Check ETL main instance status
     status_response = ec2_resource.meta.client.describe_instance_status(InstanceIds=instance_ids)['InstanceStatuses']
